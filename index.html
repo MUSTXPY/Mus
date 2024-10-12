@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Background with IP Location</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        #map {
+            height: 400px;
+            width: 100%;
+            position: relative;
+            z-index: 2; /* لضمان ظهور الخريطة فوق الخلفية المتحركة */
+        }
+
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        h1 {
+            color: white;
+            text-align: center;
+            z-index: 3;
+            position: relative;
+        }
+    </style>
+    <!-- استدعاء مكتبة خرائط جوجل -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY"></script>
+    <!-- استدعاء مكتبة Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+
+    <h1>Find Your Location from IP</h1>
+
+    <div id="map"></div>
+
+    <script>
+        // Three.js لتكوين الخلفية المتحركة
+        let scene = new THREE.Scene();
+        let camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        let renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        let geometry = new THREE.SphereGeometry(50, 32, 32);
+        let material = new THREE.MeshBasicMaterial({ color: 0x800080, wireframe: true });
+        let sphere = new THREE.Mesh(geometry, material);
+        scene.add(sphere);
+
+        camera.position.z = 100;
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // تدوير الشكل للحصول على تأثير حركة
+            sphere.rotation.x += 0.01;
+            sphere.rotation.y += 0.01;
+
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // استدعاء API من ipinfo للحصول على الموقع بناءً على IP
+        fetch('https://ipinfo.io/json?token=YOUR_IPINFO_API_KEY')
+        .then(response => response.json())
+        .then(data => {
+            const location = data.loc.split(',');
+            const userLocation = { lat: parseFloat(location[0]), lng: parseFloat(location[1]) };
+
+            const map = new google.maps.Map(document.getElementById('map'), {
+                zoom: 10,
+                center: userLocation
+            });
+
+            const marker = new google.maps.Marker({
+                position: userLocation,
+                map: map
+            });
+        })
+        .catch(error => {
+            console.error('Error fetching IP information:', error);
+        });
+
+        // تحديث حجم الـ canvas عند تغيير حجم النافذة
+        window.addEventListener('resize', () => {
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+        });
+    </script>
+
+</body>
+</html>
